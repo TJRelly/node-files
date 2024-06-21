@@ -1,29 +1,52 @@
 const fs = require("fs");
 const axios = require("axios");
 
-function cat(path) {
+function cat(path, out) {
+  fs.readFile(path, "utf8", function (err, data) {
+    if (err) {
+      console.error(`Error reading ${path}: ${err}`);
+      process.exit(1);
+    } else {
+      handleOutput(data, out);
+    }
+  });
+}
+
+async function webCat(url, out) {
   try {
-    // store the read file contents
-    var contents = fs.readFileSync(path, "utf8");
-    console.log(`file contents are "${contents}"`);
-  } catch (error) {
-    // errors thrown by fs will be caught here
-    console.error(error);
-    // kill the process and tell the shell it errored
+    let resp = await axios.get(url);
+    handleOutput(resp.data, out);
+  } catch (err) {
+    console.error(`Error fetching ${url}: ${err}`);
     process.exit(1);
   }
 }
 
-function webCat(url) {
-  axios.get(url).then(function (resp) {
-    console.log(resp.data.slice(0, 80), "...");
-  });
+function handleOutput(text, out) {
+  if (out) {
+    fs.writeFile(out, text, "utf8", function (err) {
+      if (err) {
+        console.error(`Couldn't write ${out}: ${err}`);
+        process.exit(1);
+      }
+    });
+  } else {
+    console.log(text);
+  }
 }
 
-let path = process.argv[2];
+let path;
+let out;
+
+if (process.argv[2] === "--out") {
+  out = process.argv[3];
+  path = process.argv[4];
+} else {
+  path = process.argv[2];
+}
 
 if (path.slice(0, 4) === "http") {
-  webCat(path);
+  webCat(path, out);
 } else {
-  cat(path);
+  cat(path, out);
 }
