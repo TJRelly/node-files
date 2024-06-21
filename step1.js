@@ -13,4 +13,4 @@ function cat(path) {
   }
 }
 
-cat("one.txt")
+cat(process.argv[2])
